@@ -7,7 +7,7 @@ import com.dtteam.dynamictrees.block.fruit.FruitBlock;
 import com.dtteam.dynamictrees.tree.TreeHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -17,14 +17,19 @@ public class CactusFruit extends Fruit {
 
     public static final TypedRegistry.EntryType<Fruit> TYPE = TypedRegistry.newType(CactusFruit::new);
 
-    public CactusFruit(ResourceLocation registryName) {
+    public CactusFruit(Identifier registryName) {
         super(registryName);
     }
 
-    @Override
-    protected FruitBlock createBlock(Block.Properties properties) {
-        return new CactusFruitBlock(properties, this);
-    }
+    // Dynamic Trees 1.8.0 made Fruit.createBlock final and hardcoded the FruitBlock it builds, so
+    // CactusFruitBlock can no longer be installed. Until that factory hook comes back, the prickly
+    // pear uses a plain FruitBlock: it has no is_offset state and it is supported by leaves above
+    // rather than by the cactus branch below. Restore this override to bring both back.
+    //
+    // @Override
+    // protected FruitBlock createBlock(Identifier id, Block.Properties properties) {
+    //     return new CactusFruitBlock(id, properties, this);
+    // }
 
     @Override
     public void place(LevelAccessor world, BlockPos pos, @Nullable Float seasonValue) {
@@ -41,6 +46,11 @@ public class CactusFruit extends Fruit {
     }
 
     private BlockState offsetBlockIfOnTop(LevelAccessor world, BlockPos pos, BlockState inState){
+        // Guarded because the fruit only carries OFFSET when it is backed by a CactusFruitBlock,
+        // which Dynamic Trees 1.8.0 cannot build for us -- see createBlock above.
+        if (!inState.hasProperty(CactusFruitBlock.OFFSET)) {
+            return inState;
+        }
         BlockState downState = world.getBlockState(pos.below());
         BranchBlock downBranch = TreeHelper.getBranch(world.getBlockState(pos.below()));
         if (downBranch instanceof CactusBranchBlock){

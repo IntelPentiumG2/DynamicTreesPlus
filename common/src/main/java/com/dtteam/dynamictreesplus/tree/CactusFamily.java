@@ -5,7 +5,7 @@ import com.dtteam.dynamictrees.block.branch.BranchBlock;
 import com.dtteam.dynamictrees.tree.family.Family;
 import com.dtteam.dynamictreesplus.DynamicTreesPlus;
 import com.dtteam.dynamictreesplus.block.CactusBranchBlock;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
@@ -14,20 +14,20 @@ public class CactusFamily extends Family {
 
     public static final TypedRegistry.EntryType<Family> TYPE = TypedRegistry.newType(CactusFamily::new);
 
-    public CactusFamily(final ResourceLocation registryName) {
+    public CactusFamily(final Identifier registryName) {
         super(registryName);
     }
 
     @Override
-    public BlockBehaviour.Properties getDefaultBranchProperties() {
-        return super.getDefaultBranchProperties()
+    public BlockBehaviour.Properties getBranchProperties() {
+        return super.getBranchProperties()
                 .sound(SoundType.WOOL)
                 .mapColor(MapColor.PLANT);
     }
 
     @Override
-    protected BranchBlock createBranchBlock(ResourceLocation name) {
-        return new CactusBranchBlock(name, this.getProperties());
+    protected BranchBlock createBranch(Identifier name, BlockBehaviour.Properties properties) {
+        return new CactusBranchBlock(name, properties);
     }
 
     @Override
@@ -41,7 +41,7 @@ public class CactusFamily extends Family {
     }
 
     @Override
-    public ResourceLocation getBranchLoader() {
+    public Identifier getBranchLoader() {
         return DynamicTreesPlus.CACTUS;
     }
 

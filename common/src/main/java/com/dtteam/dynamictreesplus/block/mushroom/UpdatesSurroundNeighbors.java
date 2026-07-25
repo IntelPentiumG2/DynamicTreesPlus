@@ -19,7 +19,8 @@ public interface UpdatesSurroundNeighbors {
             BlockPos offPos = pos.offset(corner);
             Block offBlock = level.getBlockState(offPos).getBlock();
             if (blockClass.isInstance(offBlock))
-                level.neighborChanged(offPos, offBlock, pos);
+                // Orientation only matters for redstone; this is a plain shape update.
+                level.neighborChanged(offPos, offBlock, null);
         }
     }
 

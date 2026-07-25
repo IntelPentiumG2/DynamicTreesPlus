@@ -12,8 +12,9 @@ import com.dtteam.dynamictrees.utility.CoordUtils;
 import com.dtteam.dynamictrees.worldgen.DynamicTreeGenerationContext;
 import com.dtteam.dynamictreesplus.block.CactusBranchBlock;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.core.Holder;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
@@ -29,7 +30,7 @@ public class CactusClonesGenFeature extends GenFeature {
     public static final ConfigurationProperty<Float> CHANCE_ON_GROW = ConfigurationProperty.floatProperty("chance_on_grow");
     public static final ConfigurationProperty<CactusBranchBlock.CactusThickness> TRUNK_TYPE = ConfigurationProperty.property("trunk_type", CactusBranchBlock.CactusThickness.class);
 
-    public CactusClonesGenFeature(ResourceLocation registryName) {
+    public CactusClonesGenFeature(Identifier registryName) {
         super(registryName);
     }
 
@@ -83,15 +84,15 @@ public class CactusClonesGenFeature extends GenFeature {
 
     private boolean placeCloneAtLocation(LevelContext levelContext, BlockPos cloneRootPos, Species species, boolean worldgen) {
         LevelAccessor level = levelContext.accessor();
-        ChunkPos chunkPos = new ChunkPos(cloneRootPos);
-        if (!level.hasChunk(chunkPos.x, chunkPos.z)) return false;
+        ChunkPos chunkPos = new ChunkPos(SectionPos.blockToSectionCoord(cloneRootPos.getX()), SectionPos.blockToSectionCoord(cloneRootPos.getZ()));
+        if (!level.hasChunk(chunkPos.x(), chunkPos.z())) return false;
         for (int i = 1; i >= -1; i--) {
             BlockPos offsetRootPos = cloneRootPos.above(i);
             if (species.isAcceptableSoil(level.getBlockState(offsetRootPos))) {
                 if (worldgen) {
                     if (level instanceof WorldGenRegion) {
                         Holder<Biome> biome = level.getBiome(offsetRootPos);
-                        species.generate(new DynamicTreeGenerationContext(levelContext, species, offsetRootPos, offsetRootPos.mutable(), biome, CoordUtils.getRandomDir(level.getRandom()), 2, worldgen));
+                        species.generate(new DynamicTreeGenerationContext(levelContext, species, offsetRootPos, offsetRootPos.mutable(), biome, CoordUtils.getRandom2DDir(level.getRandom()), 2, worldgen));
                     }
                 } else if (level instanceof Level) {
                     species.transitionToTree((Level) level, offsetRootPos.above());

@@ -21,6 +21,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ScheduledTickAccess;
+import net.minecraft.world.level.redstone.Orientation;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
@@ -190,10 +192,12 @@ public class DynamicCapBlock extends HugeMushroomBlock implements TreePart, Upda
     }
 
     @Override
-    public BlockState updateShape(BlockState pState, Direction pFacing, BlockState pFacingState, LevelAccessor pLevel, BlockPos pCurrentPos, BlockPos pFacingPos) {
-        return properties.isPartOfCap(pFacingState)
-                ? pState.setValue(PipeBlock.PROPERTY_BY_DIRECTION.get(pFacing), false)
-                : super.updateShape(pState, pFacing, pFacingState, pLevel, pCurrentPos, pFacingPos);
+    protected BlockState updateShape(BlockState state, LevelReader level, ScheduledTickAccess ticks, BlockPos pos,
+                                     Direction directionToNeighbour, BlockPos neighbourPos, BlockState neighbourState,
+                                     RandomSource random) {
+        return properties.isPartOfCap(neighbourState)
+                ? state.setValue(PipeBlock.PROPERTY_BY_DIRECTION.get(directionToNeighbour), false)
+                : super.updateShape(state, level, ticks, pos, directionToNeighbour, neighbourPos, neighbourState, random);
     }
 
     /**NeoForge Override*/ @SuppressWarnings("unused")
@@ -205,9 +209,10 @@ public class DynamicCapBlock extends HugeMushroomBlock implements TreePart, Upda
     }
 
     @Override
-    public void neighborChanged(BlockState pState, Level level, BlockPos pos, Block pBlock, BlockPos pFromPos, boolean pIsMoving) {
-        level.scheduleTick(pos, pBlock, 0);
-        super.neighborChanged(pState, level, pos, pBlock, pFromPos, pIsMoving);
+    protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block,
+                                   @Nullable Orientation orientation, boolean movedByPiston) {
+        level.scheduleTick(pos, block, 0);
+        super.neighborChanged(state, level, pos, block, orientation, movedByPiston);
     }
 
     @Override
@@ -237,15 +242,15 @@ public class DynamicCapBlock extends HugeMushroomBlock implements TreePart, Upda
 
     //Same behavior as beds
     @Override
-    public void fallOn(Level level, BlockState state, BlockPos pos, Entity entity, float fallDistance) {
-        super.fallOn(level, state, pos, entity, fallDistance * 0.5F);
+    public void fallOn(Level level, BlockState state, BlockPos pos, Entity entity, double fallDistance) {
+        super.fallOn(level, state, pos, entity, fallDistance * 0.5);
     }
 
     //Same behavior as beds
     @Override
-    public void updateEntityAfterFallOn(BlockGetter level, Entity entity) {
+    public void updateEntityMovementAfterFallOn(BlockGetter level, Entity entity) {
         if (entity.isSuppressingBounce()) {
-            super.updateEntityAfterFallOn(level, entity);
+            super.updateEntityMovementAfterFallOn(level, entity);
         } else {
             this.bounceUp(entity);
         }

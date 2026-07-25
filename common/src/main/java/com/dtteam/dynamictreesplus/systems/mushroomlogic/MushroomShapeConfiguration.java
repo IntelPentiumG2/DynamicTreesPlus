@@ -21,6 +21,11 @@ public final class MushroomShapeConfiguration extends Configuration<MushroomShap
     }
 
     @Override
+    public final Class<MushroomShapeConfiguration> getRegistryType() {
+        return MushroomShapeConfiguration.class;
+    }
+
+    @Override
     public MushroomShapeConfiguration copy() {
         final MushroomShapeConfiguration duplicateShapeKit = new MushroomShapeConfiguration(this.configurable);
         duplicateShapeKit.properties.putAll(this.properties);

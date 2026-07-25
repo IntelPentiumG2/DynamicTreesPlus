@@ -4,7 +4,7 @@ plugins {
     id "me.modmuss50.mod-publish-plugin"
 }
 
-mod_version = "${mod_version}${neoVersionAppend}"
+// Set neoVersionAppend in gradle.properties to suffix the published version.
 version = mod_version
 
 neoForge {
@@ -13,10 +13,6 @@ neoForge {
     def at = project(':common').file('src/main/resources/META-INF/accesstransformer.cfg')
     if (at.exists()) {
         accessTransformers.from(at.absolutePath)
-    }
-    parchment {
-        minecraftVersion = parchment_minecraft
-        mappingsVersion = parchment_version
     }
     def mainResources = project(":common").file("src/main/resources")
     def genResources = project(":common").file("src/generated/resources")
@@ -28,8 +24,8 @@ neoForge {
         client {
             client()
         }
-        data {
-            data()
+        clientData {
+            clientData()
             programArgument ('--all')
             programArgument ('--existing')
             programArgument (mainResources.absolutePath)
@@ -37,8 +33,6 @@ neoForge {
             programArgument (genResources.absolutePath)
             programArgument ('--mod')
             programArgument ("${mod_id}")
-            programArgument ('--mod')
-            programArgument ("dynamictrees")
         }
         server {
             server()
@@ -68,14 +62,31 @@ neoForge {
     dependencies {
         implementation "com.dtteam.dynamictrees:dynamictrees-neoforge-${project.minecraft_version}:${project.neoforge_dynamic_trees_version}"
 
-        implementation "curse.maven:jade-324717:6011258"
-        implementation "curse.maven:jei-238222:5846880"
-        implementation "curse.maven:glitchcore-955399:5660740"
-        implementation "curse.maven:serene-seasons-291874:5753503"
+        implementation "curse.maven:jade-324717:8326300"
+        implementation "curse.maven:jei-238222:7904641"
+        implementation "curse.maven:glitchcore-955399:8109770"
 
-        runtimeOnly "curse.maven:patchouli-306770:6164617"
-        runtimeOnly "curse.maven:spark-361579:6225208"
+        runtimeOnly "curse.maven:spark-361579:7815877"
     }
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+// Implement mcgradleconventions loader attribute
+def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)
+['apiElements', 'runtimeElements', 'sourcesElements', 'javadocElements'].each { variant ->
+    configurations.named("$variant") {
+        attributes {
+            attribute(loaderAttribute, 'neoforge')
+        }
+    }
+}
+sourceSets.configureEach {
+    [it.compileClasspathConfigurationName, it.runtimeClasspathConfigurationName, it.getTaskName(null, 'jarJar')].each { variant ->
+        configurations.named("$variant") {
+            attributes {
+                attribute(loaderAttribute, 'neoforge')
+            }
+        }
+    }
+}

@@ -9,5 +9,5 @@ repositories {
 }
 
 dependencies {
-    implementation "me.modmuss50.mod-publish-plugin:me.modmuss50.mod-publish-plugin.gradle.plugin:2.0.0-beta.2"
+    implementation "me.modmuss50.mod-publish-plugin:me.modmuss50.mod-publish-plugin.gradle.plugin:1.1.0"
 }

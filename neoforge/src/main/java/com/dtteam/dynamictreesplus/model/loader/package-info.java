@@ -1,6 +1,6 @@
 @MethodsReturnNonnullByDefault @ParametersAreNonnullByDefault
 package com.dtteam.dynamictreesplus.model.loader;
 
-import net.minecraft.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 
 import javax.annotation.ParametersAreNonnullByDefault;

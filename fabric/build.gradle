@@ -4,7 +4,7 @@ plugins {
     id "me.modmuss50.mod-publish-plugin"
 }
 
-mod_version = "${mod_version}${fabricVersionAppend}"
+// Set fabricVersionAppend in gradle.properties to suffix the published version.
 version = mod_version
 
 dependencies {

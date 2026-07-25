@@ -16,10 +16,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.core.Direction.AxisDirection;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.inventory.InventoryMenu;
-import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
@@ -57,7 +57,7 @@ public class CactusBranchBlockBakedModel implements IDynamicBakedModel {
 
     int[] radii = {4, 5, 7};
 
-    public CactusBranchBlockBakedModel(ResourceLocation barkTextureLocation, ResourceLocation ringsTextureLocation,
+    public CactusBranchBlockBakedModel(Identifier barkTextureLocation, Identifier ringsTextureLocation,
                                        Function<Material, TextureAtlasSprite> spriteGetter) {
         this.blockModel = new BlockModel(null, new ArrayList<>(), new HashMap<>(), false, BlockModel.GuiLight.FRONT,
                 ItemTransforms.NO_TRANSFORMS, new ArrayList<>());
@@ -736,7 +736,7 @@ public class CactusBranchBlockBakedModel implements IDynamicBakedModel {
     }
 
     public RenderType getRenderType() {
-        ResourceLocation renderTypeHint = this.blockModel.customData.getRenderTypeHint();
+        Identifier renderTypeHint = this.blockModel.customData.getRenderTypeHint();
         return renderTypeHint == null ? RenderType.cutoutMipped() : NamedRenderTypeManager.get(renderTypeHint).block();
     }
 

@@ -8,7 +8,7 @@ import com.dtteam.dynamictreesplus.DynamicTreesPlus;
 import com.dtteam.dynamictreesplus.systems.mushroomlogic.MushroomShapeConfiguration;
 import com.dtteam.dynamictreesplus.systems.mushroomlogic.context.MushroomCapContext;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -37,10 +37,15 @@ public abstract class MushroomShapeKit extends ConfigurableRegistryEntry<Mushroo
         }
     };
 
+    @Override
+    public final Class<MushroomShapeKit> getRegistryType() {
+        return REGISTRY.getType();
+    }
+
     public static final ConfigurableRegistry<MushroomShapeKit, MushroomShapeConfiguration> REGISTRY =
             new ConfigurableRegistry<>(MushroomShapeKit.class, NULL, MushroomShapeConfiguration.TEMPLATES);
 
-    public MushroomShapeKit(final ResourceLocation registryName) {
+    public MushroomShapeKit(final Identifier registryName) {
         super(registryName);
     }
 
