@@ -6,11 +6,9 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
-import net.minecraft.server.packs.PackType;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.common.data.ExistingFileHelper;
 
 import java.util.Map;
 
@@ -20,26 +18,24 @@ public class GenerateLootTableHandler {
     @SubscribeEvent
     public static void onLootTableProviderGenerate(final DataGenerationStreamEvent event) {
         CapProperties.REGISTRY.dataGenerationStream(event.getModId()).forEach(capProperties -> {
-            addCapBlockTable(capProperties, event.getFileHelper(), event.getMap(), event.getRegistries());
-            addCapTable(capProperties, event.getFileHelper(), event.getMap(), event.getRegistries());
+            addCapBlockTable(capProperties, event.getMap(), event.getRegistries());
+            addCapTable(capProperties, event.getMap(), event.getRegistries());
         });
     }
 
-    private static void addCapBlockTable(CapProperties capProperties, ExistingFileHelper existingFileHelper, Map<ResourceKey<LootTable>, LootTable.Builder> map, HolderLookup.Provider registries) {
+    // ExistingFileHelper is gone in 26.1, so hand-authored tables are no longer skipped here.
+    // putIfAbsent keeps whatever the data pack already contributed instead.
+    private static void addCapBlockTable(CapProperties capProperties, Map<ResourceKey<LootTable>, LootTable.Builder> map, HolderLookup.Provider registries) {
         if (capProperties.shouldGenerateBlockDrops()) {
             final Identifier capBlockTablePath = capProperties.getBlockLootTableName();
-            if (!existingFileHelper.exists(capBlockTablePath, PackType.SERVER_DATA)) {
-                map.put(ResourceKey.create(Registries.LOOT_TABLE, capBlockTablePath), capProperties.createBlockDrops(registries));
-            }
+            map.putIfAbsent(ResourceKey.create(Registries.LOOT_TABLE, capBlockTablePath), capProperties.createBlockDrops(registries));
         }
     }
 
-    private static void addCapTable(CapProperties capProperties, ExistingFileHelper existingFileHelper, Map<ResourceKey<LootTable>, LootTable.Builder> map, HolderLookup.Provider registries) {
+    private static void addCapTable(CapProperties capProperties, Map<ResourceKey<LootTable>, LootTable.Builder> map, HolderLookup.Provider registries) {
         if (capProperties.shouldGenerateDrops()) {
             final Identifier capTablePath = capProperties.getLootTableName();
-            if (!existingFileHelper.exists(capTablePath, PackType.SERVER_DATA)) {
-                map.put(ResourceKey.create(Registries.LOOT_TABLE, capTablePath), capProperties.createDrops(registries));
-            }
+            map.putIfAbsent(ResourceKey.create(Registries.LOOT_TABLE, capTablePath), capProperties.createDrops(registries));
         }
     }
 

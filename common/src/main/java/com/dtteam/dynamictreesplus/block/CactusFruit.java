@@ -21,15 +21,10 @@ public class CactusFruit extends Fruit {
         super(registryName);
     }
 
-    // Dynamic Trees 1.8.0 made Fruit.createBlock final and hardcoded the FruitBlock it builds, so
-    // CactusFruitBlock can no longer be installed. Until that factory hook comes back, the prickly
-    // pear uses a plain FruitBlock: it has no is_offset state and it is supported by leaves above
-    // rather than by the cactus branch below. Restore this override to bring both back.
-    //
-    // @Override
-    // protected FruitBlock createBlock(Identifier id, Block.Properties properties) {
-    //     return new CactusFruitBlock(id, properties, this);
-    // }
+    @Override
+    protected FruitBlock makeBlock(Identifier id, Block.Properties properties) {
+        return new CactusFruitBlock(id, properties, this);
+    }
 
     @Override
     public void place(LevelAccessor world, BlockPos pos, @Nullable Float seasonValue) {
@@ -46,11 +41,6 @@ public class CactusFruit extends Fruit {
     }
 
     private BlockState offsetBlockIfOnTop(LevelAccessor world, BlockPos pos, BlockState inState){
-        // Guarded because the fruit only carries OFFSET when it is backed by a CactusFruitBlock,
-        // which Dynamic Trees 1.8.0 cannot build for us -- see createBlock above.
-        if (!inState.hasProperty(CactusFruitBlock.OFFSET)) {
-            return inState;
-        }
         BlockState downState = world.getBlockState(pos.below());
         BranchBlock downBranch = TreeHelper.getBranch(world.getBlockState(pos.below()));
         if (downBranch instanceof CactusBranchBlock){
