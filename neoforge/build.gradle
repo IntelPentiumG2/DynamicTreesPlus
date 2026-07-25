@@ -55,6 +55,18 @@ neoForge {
             name = "Harley O' Connor"
             url = 'https://harleyoconnor.com/maven'
         }
+        // Dynamic Trees' published metadata references Modrinth-hosted runtime dependencies.
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = "Modrinth"
+                    url = "https://api.modrinth.com/maven"
+                }
+            }
+            filter {
+                includeGroup "maven.modrinth"
+            }
+        }
         flatDir {
             dir 'libs'
         }

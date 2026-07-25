@@ -17,6 +17,9 @@ import com.dtteam.dynamictreesplus.systems.mushroomlogic.MushroomCapDisc;
 import com.dtteam.dynamictreesplus.systems.mushroomlogic.context.MushroomCapContext;
 import com.dtteam.dynamictreesplus.tree.HugeMushroomSpecies;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.core.Direction;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.Entity;
@@ -49,14 +52,15 @@ public class DynamicCapCenterBlock extends Block implements TreePart, UpdatesSur
 
     public CapProperties properties = CapProperties.NULL;
 
-    public DynamicCapCenterBlock(CapProperties capProperties, final Properties properties) {
-        this(properties);
+    public DynamicCapCenterBlock(Identifier id, CapProperties capProperties, final Properties properties) {
+        this(id, properties);
         this.setProperties(capProperties);
         capProperties.setDynamicCapState(defaultBlockState(), true);
     }
 
-    public DynamicCapCenterBlock(Properties properties) {
-        super(properties);
+    public DynamicCapCenterBlock(Identifier id, Properties properties) {
+        // Block properties carry their own registry key since 1.21.2.
+        super(properties.setId(ResourceKey.create(Registries.BLOCK, id)));
         this.registerDefaultState(stateDefinition.any().setValue(AGE, 0));
     }
 

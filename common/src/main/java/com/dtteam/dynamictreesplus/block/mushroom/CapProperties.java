@@ -292,11 +292,11 @@ public class CapProperties extends RegistryEntry<CapProperties> implements Reset
     }
 
     protected DynamicCapBlock createDynamicCap(final BlockBehaviour.Properties properties) {
-        return new DynamicCapBlock(this, properties);
+        return new DynamicCapBlock(this.blockRegistryName, this, properties);
     }
 
     protected DynamicCapCenterBlock createDynamicCapCenter(final BlockBehaviour.Properties properties) {
-        return new DynamicCapCenterBlock(this, properties);
+        return new DynamicCapCenterBlock(this.centerBlockRegistryName, this, properties);
     }
 
 

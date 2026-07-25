@@ -1,75 +1,61 @@
 package com.dtteam.dynamictreesplus.data;
 
-import com.dtteam.dynamictrees.data.DTDataProvider;
 import com.dtteam.dynamictrees.data.Generator;
-import com.dtteam.dynamictrees.data.provider.DTBlockStateProvider;
 import com.dtteam.dynamictreesplus.block.mushroom.CapProperties;
 import com.dtteam.dynamictreesplus.block.mushroom.DynamicCapCenterBlock;
 import com.dtteam.dynamictreesplus.systems.mushroomlogic.MushroomCapDisc;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.client.data.models.BlockModelGenerators;
+import net.minecraft.client.data.models.MultiVariant;
+import net.minecraft.client.data.models.blockstates.ConditionBuilder;
+import net.minecraft.client.data.models.blockstates.MultiPartGenerator;
+import net.minecraft.client.data.models.model.ModelLocationUtils;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
-import net.neoforged.neoforge.client.model.generators.BlockModelBuilder;
-import net.neoforged.neoforge.client.model.generators.ModelFile;
 
-public class CapCenterStateGenerator implements Generator<DTDataProvider.BlockState, CapProperties>  {
+public class CapCenterStateGenerator implements Generator<BlockModelGenerators, CapProperties> {
 
     public static final DependencyKey<DynamicCapCenterBlock> CAP_CENTER = new DependencyKey<>("cap_center");
     public static final DependencyKey<Block> PRIMITIVE_CAP = new DependencyKey<>("primitive_cap");
 
     @Override
-    public void generate(DTDataProvider.BlockState prov, CapProperties input, Dependencies dependencies) {
-        if (prov instanceof DTBlockStateProvider provider) {
-            Identifier textureOutLocation = provider.block(BuiltInRegistries.BLOCK.getKey(dependencies.get(PRIMITIVE_CAP)));
-            Identifier textureInLocation = Identifier.parse("block/mushroom_block_inside");
-            Identifier outLocation = textureOutLocation;
-            Identifier inLocation = textureInLocation;
-            if (input.shouldGenerateFaceModels()){
-                outLocation = provider.models().modLoc(input.getCapFaceModelName());
-                inLocation = provider.models().modLoc(input.getCapInsideFaceModelName());
-            }
-            ModelFile.ExistingModelFile outFaceModel = provider.models().getExistingFile(
-                    input.getModelPath(CapProperties.OUTSIDE_FACE).orElse(outLocation)
-            );
-            ModelFile.ExistingModelFile inFaceModel = provider.models().getExistingFile(
-                    input.getModelPath(CapProperties.INSIDE_FACE).orElse(inLocation)
-            );
+    public void generate(BlockModelGenerators generators, CapProperties input, Dependencies dependencies) {
+        final Identifier textureOutLocation = ModelLocationUtils.getModelLocation(dependencies.get(PRIMITIVE_CAP));
+        final Identifier textureInLocation = Identifier.parse("block/mushroom_block_inside");
 
-            final BlockModelBuilder ageZeroModel = provider.models().getBuilder(input.getCapCenterAgeZeroModelName())
-                    .parent(provider.models().getExistingFile(input.getCapCenterAgeZeroModelParent()));
-            input.addCapCenterAgeZeroTextures(ageZeroModel::texture, textureOutLocation, textureInLocation);
-
-            Integer[] notZeroAges = new Integer[MushroomCapDisc.MAX_RADIUS];
-            for (int i=1;i<=MushroomCapDisc.MAX_RADIUS;i++){
-                notZeroAges[i-1]=i;
-            }
-
-            provider.getMultipartBuilder(dependencies.get(CAP_CENTER))
-                    .part().modelFile(ageZeroModel)
-                    .addModel().condition(DynamicCapCenterBlock.AGE, 0)
-                    .end()
-
-                    .part().modelFile(outFaceModel).rotationX(270).uvLock(true)
-                    .addModel().condition(DynamicCapCenterBlock.AGE, notZeroAges)
-                    .end()
-
-                    .part().modelFile(inFaceModel)
-                    .addModel().condition(DynamicCapCenterBlock.AGE, notZeroAges)
-                    .end()
-                    .part().modelFile(inFaceModel).rotationY(90)
-                    .addModel().condition(DynamicCapCenterBlock.AGE, notZeroAges)
-                    .end()
-                    .part().modelFile(inFaceModel).rotationY(180)
-                    .addModel().condition(DynamicCapCenterBlock.AGE, notZeroAges)
-                    .end()
-                    .part().modelFile(inFaceModel).rotationY(270)
-                    .addModel().condition(DynamicCapCenterBlock.AGE, notZeroAges)
-                    .end()
-                    .part().modelFile(inFaceModel).rotationX(90)
-                    .addModel().condition(DynamicCapCenterBlock.AGE, notZeroAges)
-                    .end();
+        Identifier outLocation = textureOutLocation;
+        Identifier inLocation = textureInLocation;
+        if (input.shouldGenerateFaceModels()) {
+            outLocation = input.getRegistryName().withPath(input.getCapFaceModelName());
+            inLocation = input.getRegistryName().withPath(input.getCapInsideFaceModelName());
         }
 
+        final MultiVariant outFace = BlockModelGenerators.plainVariant(
+                input.getModelPath(CapProperties.OUTSIDE_FACE).orElse(outLocation));
+        final MultiVariant inFace = BlockModelGenerators.plainVariant(
+                input.getModelPath(CapProperties.INSIDE_FACE).orElse(inLocation));
+
+        final MultiVariant ageZero = BlockModelGenerators.plainVariant(
+                CapModelHelper.createCapCenterAgeZeroModel(generators, input, textureOutLocation, textureInLocation));
+
+        final Integer[] notZeroAges = new Integer[MushroomCapDisc.MAX_RADIUS - 1];
+        for (int i = 2; i <= MushroomCapDisc.MAX_RADIUS; i++) {
+            notZeroAges[i - 2] = i;
+        }
+
+        generators.blockStateOutput.accept(
+                MultiPartGenerator.multiPart(dependencies.get(CAP_CENTER))
+                        .with(new ConditionBuilder().term(DynamicCapCenterBlock.AGE, 0), ageZero)
+                        .with(grown(notZeroAges), outFace.with(BlockModelGenerators.X_ROT_270).with(BlockModelGenerators.UV_LOCK))
+                        .with(grown(notZeroAges), inFace)
+                        .with(grown(notZeroAges), inFace.with(BlockModelGenerators.Y_ROT_90))
+                        .with(grown(notZeroAges), inFace.with(BlockModelGenerators.Y_ROT_180))
+                        .with(grown(notZeroAges), inFace.with(BlockModelGenerators.Y_ROT_270))
+                        .with(grown(notZeroAges), inFace.with(BlockModelGenerators.X_ROT_90))
+        );
+    }
+
+    private static ConditionBuilder grown(Integer[] notZeroAges) {
+        return new ConditionBuilder().term(DynamicCapCenterBlock.AGE, 1, notZeroAges);
     }
 
     @Override

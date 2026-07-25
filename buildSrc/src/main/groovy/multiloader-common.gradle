@@ -66,6 +66,14 @@ jar {
     }
 }
 
+// Hand-authored resources win over generated ones. EXCLUDE keeps the first copy on the path, which
+// is src/main/resources. This matters for en_us.json, whose names match the thirteen translated
+// language files, and for saguaro_fruit's block state, which drives the is_offset property and the
+// three age-3 variants that the generator cannot express.
+tasks.withType(AbstractCopyTask).configureEach {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 processResources {
     var expandProps = [
             'mod_version'                  : mod_version,

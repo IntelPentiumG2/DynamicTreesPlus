@@ -1,7 +1,11 @@
 {
   "variants": {
     "": {
-      "model": "dynamictreesplus:block/cactus_branch"
+      "type": "dynamictreesplus:cactus",
+      "textures": {
+        "bark": "minecraft:block/cactus_side",
+        "rings": "minecraft:block/cactus_top"
+      }
     }
   }
 }

@@ -1,7 +1,0 @@
-{
-  "loader": "dynamictrees:branch",
-  "textures": {
-    "bark": "minecraft:block/mushroom_stem",
-    "rings": "minecraft:block/mushroom_block_inside"
-  }
-}

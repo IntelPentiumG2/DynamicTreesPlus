@@ -1,9 +1,9 @@
-// 1.21.1	2025-05-25T15:48:04.1651485	Loot Tables
+// 26.1.2	2026-07-26T00:28:31.277428778	Loot Tables
 6acd815081d92dc74210ff9e399238608a64c019 data/dynamictreesplus/loot_table/blocks/brown_mushroom_cap.json
 4d24a413718af13a57862acb4840438962641263 data/dynamictreesplus/loot_table/blocks/red_mushroom_cap.json
 e6ea5f5917e7708f9a71495b32e4b519f640792c data/dynamictreesplus/loot_table/blocks/saguaro_fruit.json
-d3b63730c98a9351f2ffcbf7172cbba830503d27 data/dynamictreesplus/loot_table/trees/branches/cactus.json
-fee6f4639d02a8d5c2136a9a31308b90b75d36e0 data/dynamictreesplus/loot_table/trees/branches/mushroom.json
+b1be26da56c4e852aa765a36571d0256b54977e5 data/dynamictreesplus/loot_table/trees/branches/cactus_branch.json
+5ebd5e3d15075f4792a1e9cc955942b7f2981678 data/dynamictreesplus/loot_table/trees/branches/mushroom_branch.json
 c38accfaf533e53ef9be3eb81e0e262fa50ebc91 data/dynamictreesplus/loot_table/trees/mushroom_caps/brown_mushroom.json
 f6cc40de3f0e577e35f9b76f172b7e87c1e547be data/dynamictreesplus/loot_table/trees/mushroom_caps/red_mushroom.json
 68b22d6864053868f636f8146cb9d2b68d363e55 data/dynamictreesplus/loot_table/trees/voluntary/brown_mushroom.json

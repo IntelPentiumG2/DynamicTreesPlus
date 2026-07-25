@@ -1,103 +1,95 @@
-package com.dtteam.dynamictreesplus.model.baked;
+package com.dtteam.dynamictreesplus.model.blockstate;
 
+import com.dtteam.dynamictrees.api.network.Connections;
 import com.dtteam.dynamictrees.block.branch.BranchBlock;
+import com.dtteam.dynamictrees.model.BlockStateModelWithConnectionData;
+import com.dtteam.dynamictrees.model.ModelConnections;
 import com.dtteam.dynamictrees.model.ModelHelper;
-import com.dtteam.dynamictrees.model.modeldata.ModelConnections;
 import com.dtteam.dynamictreesplus.block.CactusBranchBlock;
 import com.google.common.collect.Maps;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.block.model.*;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.BakedModel;
-import net.minecraft.client.resources.model.BlockModelRotation;
-import net.minecraft.client.resources.model.Material;
-import net.minecraft.client.resources.model.SimpleBakedModel;
+import com.mojang.math.Quadrant;
+import net.minecraft.client.renderer.block.BlockAndTintGetter;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
+import net.minecraft.client.resources.model.ModelBaker;
+import net.minecraft.client.resources.model.cuboid.CuboidFace;
+import net.minecraft.client.resources.model.cuboid.CuboidModelElement;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.client.resources.model.geometry.QuadCollection;
+import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.core.Direction.AxisDirection;
-import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.inventory.InventoryMenu;
-import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.client.ChunkRenderTypeSet;
-import net.neoforged.neoforge.client.NamedRenderTypeManager;
-import net.neoforged.neoforge.client.model.IDynamicBakedModel;
-import net.neoforged.neoforge.client.model.data.ModelData;
+import net.neoforged.neoforge.client.model.DynamicBlockStateModel;
 import net.neoforged.neoforge.client.model.pipeline.QuadBakingVertexConsumer;
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.*;
-import java.util.function.Function;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 @OnlyIn(Dist.CLIENT)
-public class CactusBranchBlockBakedModel implements IDynamicBakedModel {
+public class CactusBranchBlockStateModel implements DynamicBlockStateModel, BlockStateModelWithConnectionData {
 
     private static final float SIXTEENTH = 0.0625f;
     private static final float SPIKE_OFFSET_1 = 0.0001f;
     private static final float SPIKE_OFFSET_2 = 0.0002f;
 
-    private final BlockModel blockModel;
+    private final Material.Baked barkTexture;
 
-    private final TextureAtlasSprite barkTexture;
-
-    // Not as many baked models as normal branches, although each model has more quads. Still less quads in total, though.
-    private final BakedModel[][] sleeves = new BakedModel[6][3];
-    private final BakedModel[][] cores = new BakedModel[3][3]; // 3 Cores for 3 axis with the bark texture all all 6 sides rotated appropriately.
-    private final BakedModel[] rings = new BakedModel[3]; // 3 Cores with the ring textures on all 6 sides
-    private final BakedModel[] coreSpikes = new BakedModel[3]; // 3 cores with only the spikey edges
-    private BakedModel sleeveTopSpikes;
+    // Not as many parts as normal branches, although each part has more quads. Still fewer quads in total, though.
+    private final QuadCollection[][] sleeves = new QuadCollection[6][3];
+    private final QuadCollection[][] cores = new QuadCollection[3][3]; // 3 Cores for 3 axis with the bark texture on all 6 sides rotated appropriately.
+    private final QuadCollection[] rings = new QuadCollection[3]; // 3 Cores with the ring textures on all 6 sides
+    private final QuadCollection[] coreSpikes = new QuadCollection[3]; // 3 cores with only the spikey edges
+    private QuadCollection sleeveTopSpikes;
 
     int[] radii = {4, 5, 7};
 
-    public CactusBranchBlockBakedModel(Identifier barkTextureLocation, Identifier ringsTextureLocation,
-                                       Function<Material, TextureAtlasSprite> spriteGetter) {
-        this.blockModel = new BlockModel(null, new ArrayList<>(), new HashMap<>(), false, BlockModel.GuiLight.FRONT,
-                ItemTransforms.NO_TRANSFORMS, new ArrayList<>());
-        this.barkTexture = spriteGetter.apply(new Material(InventoryMenu.BLOCK_ATLAS, barkTextureLocation));
-        initModels(spriteGetter.apply(new Material(InventoryMenu.BLOCK_ATLAS, ringsTextureLocation)));
+    public CactusBranchBlockStateModel(ModelBaker baker, Material.Baked barkTexture, Material.Baked ringsTexture) {
+        this.barkTexture = barkTexture;
+        initModels(baker, ringsTexture);
     }
 
-    public void initModels(TextureAtlasSprite ringsTexture) {
+    public void initModels(ModelBaker baker, Material.Baked ringsTexture) {
         for (int i = 0; i < 3; i++) {
             int radius = radii[i];
 
             for (Direction dir : Direction.values()) {
-                sleeves[dir.get3DDataValue()][i] = bakeSleeve(radius, dir, barkTexture, ringsTexture);
+                sleeves[dir.get3DDataValue()][i] = bakeSleeve(baker, radius, dir, barkTexture, ringsTexture);
             }
 
-            cores[0][i] = bakeCore(radius, Axis.Y, barkTexture); //DOWN<->UP
-            cores[1][i] = bakeCore(radius, Axis.Z, barkTexture); //NORTH<->SOUTH
-            cores[2][i] = bakeCore(radius, Axis.X, barkTexture); //WEST<->EAST
+            cores[0][i] = bakeCore(baker, radius, Axis.Y, barkTexture); //DOWN<->UP
+            cores[1][i] = bakeCore(baker, radius, Axis.Z, barkTexture); //NORTH<->SOUTH
+            cores[2][i] = bakeCore(baker, radius, Axis.X, barkTexture); //WEST<->EAST
 
-            rings[i] = bakeCore(radius, Axis.Y, ringsTexture);
+            rings[i] = bakeCore(baker, radius, Axis.Y, ringsTexture);
 
             coreSpikes[i] = bakeCoreSpikes(radius, barkTexture);
             sleeveTopSpikes = bakeTopSleeveSpikes(barkTexture);
         }
     }
 
-    private void putVertex(QuadBakingVertexConsumer builder, Vec3 normal, double x, double y, double z, float u, float v, TextureAtlasSprite sprite, float r, float g, float b, Direction face) {
+    private void putVertex(QuadBakingVertexConsumer builder, Vec3 normal, double x, double y, double z, float u, float v, Material.Baked sprite, float r, float g, float b, Direction face) {
         builder.addVertex((float)x, (float)y, (float)z);
         builder.setNormal((float) normal.x, (float) normal.y, (float) normal.z);
         builder.setColor(r, g, b, 1.0F);
-        builder.setUv(sprite.getU(u), sprite.getV(v));
+        builder.setUv(sprite.sprite().getU(u), sprite.sprite().getV(v));
         builder.setSprite(sprite);
         builder.setDirection(face);
     }
 
-    private BakedQuad createQuad(Vec3 v1, float v1u, float v1v, Vec3 v2, float v2u, float v2v, Vec3 v3, float v3u, float v3v, Vec3 v4, float v4u, float v4v, TextureAtlasSprite sprite) {
+    private BakedQuad createQuad(Vec3 v1, float v1u, float v1v, Vec3 v2, float v2u, float v2v, Vec3 v3, float v3u, float v3v, Vec3 v4, float v4u, float v4v, Material.Baked sprite) {
         Vec3 normal = v3.subtract(v2).cross(v1.subtract(v2)).normalize();
 
         QuadBakingVertexConsumer builder = new QuadBakingVertexConsumer();
-        Direction face = Direction.getNearest(normal.x, normal.y, normal.z);
+        Direction face = Direction.getApproximateNearest(normal.x, normal.y, normal.z);
         putVertex(builder, normal, v1.x, v1.y, v1.z, v1u, v1v, sprite, 1.0f, 1.0f, 1.0f, face);
         putVertex(builder, normal, v2.x, v2.y, v2.z, v2u, v2v, sprite, 1.0f, 1.0f, 1.0f, face);
         putVertex(builder, normal, v3.x, v3.y, v3.z, v3u, v3v, sprite, 1.0f, 1.0f, 1.0f, face);
@@ -105,7 +97,7 @@ public class CactusBranchBlockBakedModel implements IDynamicBakedModel {
         return builder.bakeQuad();
     }
 
-    public BakedModel bakeSleeve(int radius, Direction dir, TextureAtlasSprite bark, TextureAtlasSprite top) {
+    public QuadCollection bakeSleeve(ModelBaker baker, int radius, Direction dir, Material.Baked bark, Material.Baked top) {
         // Work in double units(*2)
         int dradius = radius * 2;
         int halfSize = (16 - dradius) / 2;
@@ -125,30 +117,32 @@ public class CactusBranchBlockBakedModel implements IDynamicBakedModel {
             negative = !negative;
         }
 
-        Map<Direction, BlockElementFace> mapFacesIn = Maps.newEnumMap(Direction.class);
+        Map<Direction, CuboidFace> mapFacesIn = Maps.newEnumMap(Direction.class);
 
         for (Direction face : Direction.values()) {
             if (dir.getOpposite() != face) { // Discard side of sleeve that faces core
-                BlockFaceUV uvface = null;
+                CuboidFace.UVs uvface = null;
+                Quadrant uvrot = Quadrant.R0;
                 if (dir == face) { // Side of sleeve that faces away from core
                     if (radius == 4 || (radius == 5 && dir == Direction.DOWN)) {
-                        uvface = new BlockFaceUV(new float[]{8 - radius, 8 - radius, 8 + radius, 8 + radius}, 0);
+                        uvface = new CuboidFace.UVs(8 - radius, 8 - radius, 8 + radius, 8 + radius);
                     }
                 } else { // UV for Bark texture
-                    uvface = new BlockFaceUV(new float[]{8 - radius, negative ? 16 - halfSize : 0, 8 + radius, negative ? 16 : halfSize}, getFaceAngle(dir.getAxis(), face));
+                    uvface = new CuboidFace.UVs(8 - radius, negative ? 16 - halfSize : 0, 8 + radius, negative ? 16 : halfSize);
+                    uvrot = getFaceAngle(dir.getAxis(), face);
                 }
                 if (uvface != null) {
-                    mapFacesIn.put(face, new BlockElementFace(null, -1, null, uvface));
+                    mapFacesIn.put(face, new CuboidFace(null, -1, "", uvface, uvrot));
                 }
             }
         }
 
-        BlockElement part = new BlockElement(posFrom, posTo, mapFacesIn, null, true);
-        SimpleBakedModel.Builder builder = new SimpleBakedModel.Builder(blockModel, ItemOverrides.EMPTY, false).particle(bark);
+        CuboidModelElement part = new CuboidModelElement(posFrom, posTo, mapFacesIn, null, true, 0);
+        QuadCollection.Builder builder = new QuadCollection.Builder();
 
-        for (Map.Entry<Direction, BlockElementFace> e : part.faces.entrySet()) {
+        for (Map.Entry<Direction, CuboidFace> e : part.faces().entrySet()) {
             Direction face = e.getKey();
-            builder.addCulledFace(face, ModelHelper.makeBakedQuad(part, e.getValue(), (dir == face) ? top : bark, face, BlockModelRotation.X0_Y0));
+            builder.addCulledFace(face, ModelHelper.makeBakedQuad(baker, part, e.getValue(), (dir == face) ? top : bark, face));
         }
         float minV = (negative ? 16 - halfSize : 0) / 16f;
         float maxV = (negative ? 16 : halfSize) / 16f;
@@ -294,37 +288,37 @@ public class CactusBranchBlockBakedModel implements IDynamicBakedModel {
         return builder.build();
     }
 
-    public BakedModel bakeCore(int radius, Axis axis, TextureAtlasSprite icon) {
+    public QuadCollection bakeCore(ModelBaker baker, int radius, Axis axis, Material.Baked icon) {
 
         Vector3f posFrom = new Vector3f(8 - radius, 8 - radius, 8 - radius);
         Vector3f posTo = new Vector3f(8 + radius, 8 + radius, 8 + radius);
 
-        Map<Direction, BlockElementFace> mapFacesIn = Maps.newEnumMap(Direction.class);
+        Map<Direction, CuboidFace> mapFacesIn = Maps.newEnumMap(Direction.class);
 
         for (Direction face : Direction.values()) {
-            BlockFaceUV uvface = new BlockFaceUV(new float[]{8 - radius, 8 - radius, 8 + radius, 8 + radius}, getFaceAngle(axis, face));
-            mapFacesIn.put(face, new BlockElementFace(null, -1, null, uvface));
+            CuboidFace.UVs uvface = new CuboidFace.UVs(8 - radius, 8 - radius, 8 + radius, 8 + radius);
+            mapFacesIn.put(face, new CuboidFace(null, -1, "", uvface, getFaceAngle(axis, face)));
         }
 
-        BlockElement part = new BlockElement(posFrom, posTo, mapFacesIn, null, true);
-        SimpleBakedModel.Builder builder = new SimpleBakedModel.Builder(blockModel, ItemOverrides.EMPTY, false).particle(icon);
+        CuboidModelElement part = new CuboidModelElement(posFrom, posTo, mapFacesIn, null, true, 0);
+        QuadCollection.Builder builder = new QuadCollection.Builder();
 
-        for (Map.Entry<Direction, BlockElementFace> e : part.faces.entrySet()) {
+        for (Map.Entry<Direction, CuboidFace> e : part.faces().entrySet()) {
             Direction face = e.getKey();
-            builder.addCulledFace(face, ModelHelper.makeBakedQuad(part, e.getValue(), icon, face, BlockModelRotation.X0_Y0));
+            builder.addCulledFace(face, ModelHelper.makeBakedQuad(baker, part, e.getValue(), icon, face));
         }
 
         return builder.build();
     }
 
-    public BakedModel bakeCoreSpikes(int radius, TextureAtlasSprite bark) {
+    public QuadCollection bakeCoreSpikes(int radius, Material.Baked bark) {
         float minV = (8 - radius) / 16f;
         float maxV = (8 + radius) / 16f;
 
         Vector3f posFrom = new Vector3f(8 - radius, 8 - radius, 8 - radius);
         Vector3f posTo = new Vector3f(8 + radius, 8 + radius, 8 + radius);
 
-        SimpleBakedModel.Builder builder = new SimpleBakedModel.Builder(blockModel, ItemOverrides.EMPTY, false).particle(bark);
+        QuadCollection.Builder builder = new QuadCollection.Builder();
 
         // X
         builder.addCulledFace(Direction.UP, this.createQuad(
@@ -459,14 +453,14 @@ public class CactusBranchBlockBakedModel implements IDynamicBakedModel {
         return builder.build();
     }
 
-    public BakedModel bakeTopSleeveSpikes(TextureAtlasSprite bark) {
+    public QuadCollection bakeTopSleeveSpikes(Material.Baked bark) {
         float minV = 4/ 16f;
         float maxV = 12/ 16f;
 
         Vector3f posFrom = new Vector3f(4, 16, 4);
         Vector3f posTo = new Vector3f(12, 16, 12);
 
-        SimpleBakedModel.Builder builder = new SimpleBakedModel.Builder(blockModel, ItemOverrides.EMPTY, false).particle(bark);
+        QuadCollection.Builder builder = new QuadCollection.Builder();
 
 
         builder.addCulledFace(Direction.UP, this.createQuad(
@@ -522,22 +516,22 @@ public class CactusBranchBlockBakedModel implements IDynamicBakedModel {
      * @param face
      * @return
      */
-    public int getFaceAngle(Axis axis, Direction face) {
+    public Quadrant getFaceAngle(Axis axis, Direction face) {
         if (axis == Axis.Y) { //UP / DOWN
-            return 0;
+            return Quadrant.R0;
         } else if (axis == Axis.Z) {//NORTH / SOUTH
             switch (face) {
                 case UP:
-                    return 0;
+                    return Quadrant.R0;
                 case WEST:
-                    return 270;
+                    return Quadrant.R270;
                 case DOWN:
-                    return 180;
+                    return Quadrant.R180;
                 default:
-                    return 90;
+                    return Quadrant.R90;
             }
         } else { //EAST/WEST
-            return (face == Direction.NORTH) ? 270 : 90;
+            return (face == Direction.NORTH) ? Quadrant.R270 : Quadrant.R90;
         }
     }
 
@@ -557,111 +551,138 @@ public class CactusBranchBlockBakedModel implements IDynamicBakedModel {
     }
 
     @Override
-    public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, @Nonnull RandomSource random, @Nonnull ModelData extraData, @Nullable RenderType renderType) {
+    public Object createGeometryKey(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource random) {
+        return ModelHelper.getModelConnections(level, pos, state);
+    }
 
-        if (side == null && state != null) {
-            List<BakedQuad> quadsList = new ArrayList<>(12);
+    @Override
+    public void collectParts(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource random, List<BlockStateModelPart> parts) {
+        collectParts(state, parts, ModelHelper.getModelConnections(level, pos, state));
+    }
 
-            int coreRadius = this.getRadius(state);
+    /**
+     * The cactus does its own culling from the connection data, so every quad it selects is added as
+     * an unculled face -- the same thing the old baked model did by only answering for a null side.
+     */
+    @Override
+    public void collectParts(BlockState state, List<BlockStateModelPart> parts, Connections connectionsData) {
+        final List<BakedQuad> quadsList = new ArrayList<>(12);
 
-            int[] connections = new int[]{0, 0, 0, 0, 0, 0};
-            Direction forceRingDir = null;
-            ModelConnections connectionsData = extraData.get(ModelConnections.CONNECTIONS_PROPERTY);
-            if (connectionsData != null) {
-                connections = connectionsData.getAllRadii();
-                forceRingDir = connectionsData.getRingOnly();
+        int coreRadius = this.getRadius(state);
+
+        int[] connections = new int[]{0, 0, 0, 0, 0, 0};
+        Direction forceRingDir = null;
+        if (connectionsData instanceof ModelConnections modelConnections) {
+            connections = modelConnections.getAllRadii();
+            forceRingDir = modelConnections.getRingOnly();
+        }
+
+        //Count number of connections
+        int numConnections = 0;
+        for (int i : connections) {
+            numConnections += (i != 0) ? 1 : 0;
+        }
+
+        if (numConnections == 0 && forceRingDir != null) {
+            quadsList.addAll(rings[getRadiusIndex(coreRadius)].getQuads(forceRingDir));
+        } else {
+            boolean extraUpSleeve = false;
+            if (coreRadius == radii[0] && numConnections == 1 && state.getValue(CactusBranchBlock.ORIGIN).getAxis().isHorizontal()) {
+                connections[1] = radii[0];
+                extraUpSleeve = true;
             }
 
-            //Count number of connections
-            int numConnections = 0;
-            for (int i : connections) {
-                numConnections += (i != 0) ? 1 : 0;
+            //The source direction is the biggest connection from one of the 6 directions
+            Direction sourceDir = getSourceDir(coreRadius, connections);
+            if (sourceDir == null) {
+                sourceDir = Direction.DOWN;
             }
+            int coreDir = resolveCoreDir(sourceDir);
 
-            if (numConnections == 0 && forceRingDir != null) {
-                quadsList.addAll(rings[getRadiusIndex(coreRadius)].getQuads(state, forceRingDir, random, extraData, renderType));
-            } else {
-                boolean extraUpSleeve = false;
-                if (coreRadius == radii[0] && numConnections == 1 && state.getValue(CactusBranchBlock.ORIGIN).getAxis().isHorizontal()) {
-                    connections[1] = radii[0];
-                    extraUpSleeve = true;
-                }
+            // This is for drawing the rings on a terminating branch
+            Direction coreRingDir = (numConnections == 1) ? sourceDir.getOpposite() : null;
 
-                //The source direction is the biggest connection from one of the 6 directions
-                Direction sourceDir = getSourceDir(coreRadius, connections);
-                if (sourceDir == null) {
-                    sourceDir = Direction.DOWN;
-                }
-                int coreDir = resolveCoreDir(sourceDir);
-
-                // This is for drawing the rings on a terminating branch
-                Direction coreRingDir = (numConnections == 1) ? sourceDir.getOpposite() : null;
-
-                for (Direction face : Direction.values()) {
-                    //Get quads for core model
-                    if (coreRadius != connections[face.get3DDataValue()]) {
-                        if (coreRingDir == null || coreRingDir != face) {
-                            quadsList.addAll(cores[coreDir][getRadiusIndex(coreRadius)].getQuads(state, face, random, extraData, renderType));
-                        } else {
-                            quadsList.addAll(rings[getRadiusIndex(coreRadius)].getQuads(state, face, random, extraData, renderType));
-                        }
+            for (Direction face : Direction.values()) {
+                //Get quads for core model
+                if (coreRadius != connections[face.get3DDataValue()]) {
+                    if (coreRingDir == null || coreRingDir != face) {
+                        quadsList.addAll(cores[coreDir][getRadiusIndex(coreRadius)].getQuads(face));
+                    } else {
+                        quadsList.addAll(rings[getRadiusIndex(coreRadius)].getQuads(face));
                     }
+                }
 
-                    // Get quads for core spikes
-                    for (Direction dir : Direction.values()) {
-                        if (coreRadius > connections[dir.get3DDataValue()]) {
-                            for (BakedQuad quad : coreSpikes[getRadiusIndex(coreRadius)].getQuads(state, dir, random, extraData, renderType)) {
-                                if (coreRadius > connections[quad.getDirection().get3DDataValue()]) {
-                                    quadsList.add(quad);
-                                }
+                // Get quads for core spikes
+                for (Direction dir : Direction.values()) {
+                    if (coreRadius > connections[dir.get3DDataValue()]) {
+                        for (BakedQuad quad : coreSpikes[getRadiusIndex(coreRadius)].getQuads(dir)) {
+                            if (coreRadius > connections[quad.direction().get3DDataValue()]) {
+                                quadsList.add(quad);
                             }
                         }
                     }
-
-                    // Get quads for sleeves models
-                    for (Direction connDir : Direction.values()) {
-                        int idx = connDir.get3DDataValue();
-                        int connRadius = connections[idx];
-                        // If the connection side matches the quadpull side then cull the sleeve face.  Don't cull radius 1 connections for leaves(which are partly transparent).
-                        if (connRadius >= radii[0] && ((connDir == Direction.UP && connRadius == radii[0] && extraUpSleeve) || face != connDir || connDir == Direction.DOWN)) {
-                            quadsList.addAll(sleeves[idx][getRadiusIndex(connRadius)].getQuads(state, face, random, extraData, renderType));
-                        }
-                    }
                 }
 
-                if (extraUpSleeve) {
-                    quadsList.addAll(sleeveTopSpikes.getQuads(state, Direction.UP, random, extraData, renderType));
+                // Get quads for sleeves models
+                for (Direction connDir : Direction.values()) {
+                    int idx = connDir.get3DDataValue();
+                    int connRadius = connections[idx];
+                    // If the connection side matches the quadpull side then cull the sleeve face.  Don't cull radius 1 connections for leaves(which are partly transparent).
+                    if (connRadius >= radii[0] && ((connDir == Direction.UP && connRadius == radii[0] && extraUpSleeve) || face != connDir || connDir == Direction.DOWN)) {
+                        quadsList.addAll(sleeves[idx][getRadiusIndex(connRadius)].getQuads(face));
+                    }
                 }
             }
 
-            return quadsList;
+            if (extraUpSleeve) {
+                quadsList.addAll(sleeveTopSpikes.getQuads(Direction.UP));
+            }
         }
 
-        return Collections.emptyList();
+        if (quadsList.isEmpty()) {
+            return;
+        }
+
+        final QuadCollection.Builder builder = new QuadCollection.Builder();
+        quadsList.forEach(builder::addUnculledFace);
+        parts.add(new CactusModelPart(builder.build(), barkTexture));
+    }
+
+    private record CactusModelPart(QuadCollection quads, Material.Baked particle) implements BlockStateModelPart {
+        @Override
+        public List<BakedQuad> getQuads(@Nullable Direction direction) {
+            return this.quads.getQuads(direction);
+        }
+
+        @Override
+        public @BakedQuad.MaterialFlags int materialFlags() {
+            return this.quads.materialFlags();
+        }
+
+        @Override
+        public Material.Baked particleMaterial() {
+            return this.particle;
+        }
+
+        @Override
+        public boolean useAmbientOcclusion() {
+            return true;
+        }
+    }
+
+    @Override
+    public Material.Baked particleMaterial() {
+        return barkTexture;
+    }
+
+    @Override
+    public @BakedQuad.MaterialFlags int materialFlags() {
+        return cores[0][0].materialFlags();
     }
 
     /**
      * Checks all neighboring tree parts to determine the connection radius for each side of this branch block.
      */
-    @Override
-    public ModelData getModelData(@Nonnull BlockAndTintGetter level, @Nonnull BlockPos pos, @Nonnull BlockState state, @Nonnull ModelData extraData) {
-        ModelConnections modelConnections;
-        if (state.getBlock() instanceof BranchBlock branchBlock) {
-            modelConnections = new ModelConnections(branchBlock.getConnectionData(level, pos, state)).setFamily(branchBlock.getFamily());
-        } else {
-            modelConnections = new ModelConnections();
-        }
-        return modelConnections.toModelData(extraData);
-    }
-
-    /**
-     * Locates the side with the largest neighbor radius that's equal to or greater than this branch block
-     *
-     * @param coreRadius
-     * @param connections an array of 6 integers, one for the radius of each connecting side. DUNSWE.
-     * @return
-     */
-    @Nullable
     protected Direction getSourceDir(int coreRadius, int[] connections) {
         int largestConnection = 0;
         Direction sourceDir = null;
@@ -693,51 +714,6 @@ public class CactusBranchBlockBakedModel implements IDynamicBakedModel {
     protected int getRadius(BlockState blockState) {
         // This way works with branches that don't have the RADIUS property, like cactus
         return ((CactusBranchBlock) blockState.getBlock()).getRadius(blockState);
-    }
-
-    @Override
-    public boolean useAmbientOcclusion() {
-        return true;
-    }
-
-    @Override
-    public TextureAtlasSprite getParticleIcon(@Nullable ModelData extraData) {
-        return getParticleIcon();
-    }
-
-    @Override
-    public TextureAtlasSprite getParticleIcon() {
-        return barkTexture;
-    }
-
-    @Override
-    public boolean isGui3d() {
-        return false;
-    }
-
-    @Override
-    public boolean isCustomRenderer() {
-        return false;
-    }
-
-    @Nonnull
-    @Override
-    public ItemOverrides getOverrides() {
-        return ItemOverrides.EMPTY;
-    }
-
-    @Override
-    public boolean usesBlockLight() {
-        return false;
-    }
-
-    public ChunkRenderTypeSet getRenderTypes(@NotNull BlockState state, @NotNull RandomSource rand, @NotNull ModelData data) {
-        return ChunkRenderTypeSet.of(this.getRenderType());
-    }
-
-    public RenderType getRenderType() {
-        Identifier renderTypeHint = this.blockModel.customData.getRenderTypeHint();
-        return renderTypeHint == null ? RenderType.cutoutMipped() : NamedRenderTypeManager.get(renderTypeHint).block();
     }
 
 }

@@ -1,89 +1,67 @@
 package com.dtteam.dynamictreesplus.data;
 
-import com.dtteam.dynamictrees.data.DTDataProvider;
 import com.dtteam.dynamictrees.data.Generator;
-import com.dtteam.dynamictrees.data.provider.DTBlockStateProvider;
 import com.dtteam.dynamictreesplus.block.mushroom.CapProperties;
 import com.dtteam.dynamictreesplus.block.mushroom.DynamicCapBlock;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.client.data.models.BlockModelGenerators;
+import net.minecraft.client.data.models.MultiVariant;
+import net.minecraft.client.data.models.blockstates.ConditionBuilder;
+import net.minecraft.client.data.models.blockstates.MultiPartGenerator;
+import net.minecraft.client.renderer.block.dispatch.VariantMutator;
+import net.minecraft.client.data.models.model.ModelLocationUtils;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
-import net.neoforged.neoforge.client.model.generators.BlockModelBuilder;
-import net.neoforged.neoforge.client.model.generators.ModelFile;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import org.jetbrains.annotations.Nullable;
 
-public class CapStateGenerator implements Generator<DTDataProvider.BlockState, CapProperties> {
+public class CapStateGenerator implements Generator<BlockModelGenerators, CapProperties> {
 
     public static final DependencyKey<DynamicCapBlock> CAP = new DependencyKey<>("cap");
     public static final DependencyKey<Block> PRIMITIVE_CAP = new DependencyKey<>("primitive_cap");
 
     @Override
-    public void generate(DTDataProvider.BlockState prov, CapProperties input, Dependencies dependencies) {
-        if (prov instanceof DTBlockStateProvider provider){
-            Identifier outLocation = provider.block(BuiltInRegistries.BLOCK.getKey(dependencies.get(PRIMITIVE_CAP)));
-            Identifier inLocation = Identifier.parse("block/mushroom_block_inside");
-            ModelFile outFaceModel;
-            ModelFile inFaceModel;
-            if (input.shouldGenerateFaceModels()){
-                final BlockModelBuilder outFaceBuilder = provider.models().getBuilder(input.getCapFaceModelName())
-                        .parent(provider.models().getExistingFile(input.getFaceModelParent()));
-                input.addCapFaceTextures(outFaceBuilder::texture, outLocation, false);
-                outFaceModel = outFaceBuilder;
-                final BlockModelBuilder inFaceBuilder = provider.models().getBuilder(input.getCapInsideFaceModelName())
-                        .parent(provider.models().getExistingFile(input.getFaceModelParent()));
-                input.addCapFaceTextures(inFaceBuilder::texture, inLocation, true);
-                inFaceModel = inFaceBuilder;
-            } else {
-                outFaceModel = provider.models().getExistingFile(
-                        input.getModelPath(CapProperties.OUTSIDE_FACE).orElse(outLocation)
-                );
-                inFaceModel = provider.models().getExistingFile(
-                        input.getModelPath(CapProperties.INSIDE_FACE).orElse(inLocation)
-                );
-            }
+    public void generate(BlockModelGenerators generators, CapProperties input, Dependencies dependencies) {
+        final Identifier outLocation = ModelLocationUtils.getModelLocation(dependencies.get(PRIMITIVE_CAP));
+        final Identifier inLocation = Identifier.parse("block/mushroom_block_inside");
 
-            provider.getMultipartBuilder(dependencies.get(CAP))
-                    .part().modelFile(outFaceModel).uvLock(true)
-                    .addModel().condition(DynamicCapBlock.NORTH, true)
-                    .end()
-                    .part().modelFile(inFaceModel)
-                    .addModel().condition(DynamicCapBlock.NORTH, false)
-                    .end()
-
-                    .part().modelFile(outFaceModel).rotationY(90).uvLock(true)
-                    .addModel().condition(DynamicCapBlock.EAST, true)
-                    .end()
-                    .part().modelFile(inFaceModel).rotationY(90)
-                    .addModel().condition(DynamicCapBlock.EAST, false)
-                    .end()
-
-                    .part().modelFile(outFaceModel).rotationY(180).uvLock(true)
-                    .addModel().condition(DynamicCapBlock.SOUTH, true)
-                    .end()
-                    .part().modelFile(inFaceModel).rotationY(180)
-                    .addModel().condition(DynamicCapBlock.SOUTH, false)
-                    .end()
-
-                    .part().modelFile(outFaceModel).rotationY(270).uvLock(true)
-                    .addModel().condition(DynamicCapBlock.WEST, true)
-                    .end()
-                    .part().modelFile(inFaceModel).rotationY(270)
-                    .addModel().condition(DynamicCapBlock.WEST, false)
-                    .end()
-
-                    .part().modelFile(outFaceModel).rotationX(270).uvLock(true)
-                    .addModel().condition(DynamicCapBlock.UP, true)
-                    .end()
-                    .part().modelFile(inFaceModel).rotationX(270)
-                    .addModel().condition(DynamicCapBlock.UP, false)
-                    .end()
-
-                    .part().modelFile(outFaceModel).rotationX(90).uvLock(true)
-                    .addModel().condition(DynamicCapBlock.DOWN, true)
-                    .end()
-                    .part().modelFile(inFaceModel).rotationX(90)
-                    .addModel().condition(DynamicCapBlock.DOWN, false)
-                    .end();
+        final Identifier outFaceModel;
+        final Identifier inFaceModel;
+        if (input.shouldGenerateFaceModels()) {
+            outFaceModel = CapModelHelper.createFaceModel(generators, input, input.getCapFaceModelName(),
+                    input.getFaceModelParent(), outLocation, false);
+            inFaceModel = CapModelHelper.createFaceModel(generators, input, input.getCapInsideFaceModelName(),
+                    input.getFaceModelParent(), inLocation, true);
+        } else {
+            outFaceModel = input.getModelPath(CapProperties.OUTSIDE_FACE).orElse(outLocation);
+            inFaceModel = input.getModelPath(CapProperties.INSIDE_FACE).orElse(inLocation);
         }
+
+        final MultiVariant outFace = BlockModelGenerators.plainVariant(outFaceModel);
+        final MultiVariant inFace = BlockModelGenerators.plainVariant(inFaceModel);
+
+        MultiPartGenerator generator = MultiPartGenerator.multiPart(dependencies.get(CAP));
+        generator = face(generator, outFace, inFace, DynamicCapBlock.NORTH, null);
+        generator = face(generator, outFace, inFace, DynamicCapBlock.EAST, BlockModelGenerators.Y_ROT_90);
+        generator = face(generator, outFace, inFace, DynamicCapBlock.SOUTH, BlockModelGenerators.Y_ROT_180);
+        generator = face(generator, outFace, inFace, DynamicCapBlock.WEST, BlockModelGenerators.Y_ROT_270);
+        generator = face(generator, outFace, inFace, DynamicCapBlock.UP, BlockModelGenerators.X_ROT_270);
+        generator = face(generator, outFace, inFace, DynamicCapBlock.DOWN, BlockModelGenerators.X_ROT_90);
+
+        generators.blockStateOutput.accept(generator);
+    }
+
+    /**
+     * A cap side shows the outside texture when it is exposed and the inside texture when it is not,
+     * so each direction contributes a pair of conditioned parts. Only the outside face is uv locked,
+     * matching the multipart this replaces.
+     */
+    private static MultiPartGenerator face(MultiPartGenerator generator, MultiVariant outFace, MultiVariant inFace,
+                                           BooleanProperty property, @Nullable VariantMutator rotation) {
+        final MultiVariant out = rotation == null ? outFace : outFace.with(rotation);
+        final MultiVariant in = rotation == null ? inFace : inFace.with(rotation);
+        return generator
+                .with(new ConditionBuilder().term(property, true), out.with(BlockModelGenerators.UV_LOCK))
+                .with(new ConditionBuilder().term(property, false), in);
     }
 
     @Override
