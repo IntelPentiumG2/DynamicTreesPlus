@@ -5,14 +5,13 @@ import com.dtteam.dynamictrees.block.fruit.Fruit;
 import com.dtteam.dynamictrees.block.leaves.LeavesProperties;
 import com.dtteam.dynamictrees.block.soil.SoilProperties;
 import com.dtteam.dynamictrees.data.GatherDataHelper;
-import com.dtteam.dynamictrees.data.builder.BasicLoaderBuilder;
-import com.dtteam.dynamictreesplus.model.blockstate.UnbakedCactusBranchModel;
 import com.dtteam.dynamictrees.registry.NeoForgeRegistryHandler;
 import com.dtteam.dynamictrees.tree.family.Family;
 import com.dtteam.dynamictrees.tree.species.Species;
 import com.dtteam.dynamictrees.treepack.Resources;
 import com.dtteam.dynamictreesplus.block.mushroom.CapProperties;
 import com.dtteam.dynamictreesplus.data.DTPDataGenerators;
+import com.dtteam.dynamictreesplus.data.DTPLoaderBuilders;
 import com.dtteam.dynamictreesplus.init.DTPConfigs;
 import com.dtteam.dynamictreesplus.resources.DTPShapes;
 import net.neoforged.bus.api.IEventBus;
@@ -44,12 +43,7 @@ public class DynamicTreesPlusNeoForge {
     }
 
     private void gatherData(final GatherDataEvent.Client event) {
-        // The cactus branch model is named directly by the block state now, so the data generator
-        // builds its unbaked form rather than pointing at a model loader.
-        BasicLoaderBuilder.loaderBuilders.put(
-                DynamicTreesPlus.CACTUS, (textures, family) ->
-                        new BasicLoaderBuilder(() -> new UnbakedCactusBranchModel(
-                                textures.get("bark"), textures.get("rings"))));
+        DTPLoaderBuilders.register();
 
         Resources.MANAGER.gatherData();
         GatherDataHelper.gatherClientData(DynamicTreesPlus.MOD_ID, event,
