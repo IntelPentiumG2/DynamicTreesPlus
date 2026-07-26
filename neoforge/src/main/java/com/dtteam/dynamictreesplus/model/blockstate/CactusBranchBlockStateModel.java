@@ -566,6 +566,11 @@ public class CactusBranchBlockStateModel implements DynamicBlockStateModel, Bloc
         final List<BakedQuad> quadsList = new ArrayList<>(12);
 
         int coreRadius = this.getRadius(state);
+        // Nothing below this point holds for a state that is not a cactus branch, and the ORIGIN
+        // lookup further down would throw on one. Dynamic Trees' own branch model bails the same way.
+        if (coreRadius == 0) {
+            return;
+        }
 
         int[] connections = new int[]{0, 0, 0, 0, 0, 0};
         Direction forceRingDir = null;
@@ -709,8 +714,12 @@ public class CactusBranchBlockStateModel implements DynamicBlockStateModel, Bloc
     }
 
     protected int getRadius(BlockState blockState) {
-        // This way works with branches that don't have the RADIUS property, like cactus
-        return ((CactusBranchBlock) blockState.getBlock()).getRadius(blockState);
+        // The block answers, because branches like the cactus have no RADIUS property to read.
+        // The type is checked rather than assumed: model bakers that run outside a level, such as
+        // Voxy's, call collectParts with whatever state they hold, air included.
+        return blockState.getBlock() instanceof CactusBranchBlock cactusBranch
+                ? cactusBranch.getRadius(blockState)
+                : 0;
     }
 
 }
