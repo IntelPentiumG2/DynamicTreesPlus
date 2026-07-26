@@ -7,8 +7,6 @@ import net.minecraft.client.resources.model.ModelBaker;
 import net.minecraft.client.resources.model.ResolvableModel;
 import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.resources.Identifier;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.client.model.block.CustomUnbakedBlockStateModel;
 
 /**
@@ -17,7 +15,6 @@ import net.neoforged.neoforge.client.model.block.CustomUnbakedBlockStateModel;
  * <p>Replaces the model loader and geometry pair this used before 26.1: block states now name the
  * model type directly, so a codec over the two textures is all that is needed.</p>
  */
-@OnlyIn(Dist.CLIENT)
 public record UnbakedCactusBranchModel(Identifier barkTexture,
                                        Identifier ringsTexture) implements CustomUnbakedBlockStateModel {
 

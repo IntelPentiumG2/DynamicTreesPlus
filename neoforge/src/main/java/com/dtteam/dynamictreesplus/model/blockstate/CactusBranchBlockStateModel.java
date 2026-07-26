@@ -23,8 +23,6 @@ import net.minecraft.core.Direction.AxisDirection;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.client.model.DynamicBlockStateModel;
 import net.neoforged.neoforge.client.model.pipeline.QuadBakingVertexConsumer;
 import org.jetbrains.annotations.Nullable;
@@ -34,7 +32,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-@OnlyIn(Dist.CLIENT)
 public class CactusBranchBlockStateModel implements DynamicBlockStateModel, BlockStateModelWithConnectionData {
 
     private static final float SIXTEENTH = 0.0625f;
